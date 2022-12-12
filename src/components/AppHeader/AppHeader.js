@@ -1,66 +1,137 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-    faMagnifyingGlass,
-    faCircleXmark,
-    faBell,
-    faShop,
-} from '@fortawesome/free-solid-svg-icons';
+import { faBell, faShop, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { faCircleUser } from '@fortawesome/free-regular-svg-icons';
 import { useState } from 'react';
-import { Container, Nav, Navbar } from 'react-bootstrap';
-import { NavLink } from 'react-router-dom';
-
-import logo from '../../assets/images/logo.png';
+import { Nav, Navbar, Form, Container } from 'react-bootstrap';
+import { NavLink, useNavigate } from 'react-router-dom';
+import useOnclickOutside from 'react-cool-onclickoutside';
+import logo from '../../assets/images/logo-brand.png';
 import './Header.scss';
 import routes from '../../config/routes';
 import Button from '../Button/Button';
 import CartSidebar from '../CartSidebar/CartSidebar';
+import axios from 'axios';
+import BASE_API_URL from '../../api/api';
+import { useEffect } from 'react';
 
 function AppHeader() {
-    const user = {
-        id: 1,
-    };
-    const [currentUser, setCurrentUSer] = useState(user);
+    const [currentToken, setCurrentToken] = useState(localStorage.getItem('token'));
+    const navigate = useNavigate();
+    const [currentUser, setCurrentUser] = useState({});
+    const [isSeller, setIsSeller] = useState(false);
+    const API = axios.create({
+        baseURL: BASE_API_URL,
+    });
+    useEffect(() => {
+        const fetchCurrentUser = () => {
+            API.get('v1/users/getCurrentUser', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + currentToken,
+                },
+            })
+                .then((res) => {
+                    setCurrentUser(res.data);
+                    if (res.data.roleId === 'seller') {
+                        setIsSeller(true);
+                    }
+                })
+                .catch((err) => console.log('err', err));
+        };
+        fetchCurrentUser();
+    }, []);
 
-    const handleLogout = () => {
-        setCurrentUSer(null);
+    const handleLogout = (e) => {
+        e.preventDefault();
+        localStorage.clear();
+        sessionStorage.clear();
+        setCurrentToken(localStorage.getItem('token'));
+        navigate('/');
     };
+
+    const [search, setSearch] = useState();
+
+    const toggle = () => {
+        setSearch(true);
+    };
+
+    const closeSearch = () => (search === true ? setSearch(false) : null);
+
+    const ref = useOnclickOutside(() => {
+        closeSearch();
+    });
 
     return (
-        <Container className="header-container">
-            <Navbar expand="lg" collapseOnSelect>
-                <Container
-                    fluid
-                    className="container d-flex align-items-center justify-content-between"
-                >
+        <Container>
+            <Navbar expand="lg" collapseOnSelect className="px-4 py-8">
+                <div className="container d-flex align-items-center justify-content-between">
                     <Navbar.Brand href={routes.home} className="logo ">
-                        <img src={logo} alt="logo" preview={false} />
+                        <img src={logo} alt="logo" />
                     </Navbar.Brand>
+
                     <div className="action d-flex align-items-center ms-2 order-lg-last">
-                        <div className="search">
-                            <input placeholder="Search" spellCheck={false} />
-                            <button className="clear">
-                                <FontAwesomeIcon icon={faCircleXmark} />
-                            </button>
-                            <button className="search-btn">
-                                <div className="icon">
-                                    <FontAwesomeIcon icon={faMagnifyingGlass} />
+                        <Nav className="my-auto" ref={ref}>
+                            <Form
+                                className={
+                                    search === false
+                                        ? 'searchbar fadeOutWidth'
+                                        : search === true
+                                        ? 'searchbar fadeInWidth'
+                                        : 'searchbar'
+                                }
+                            >
+                                {search === true && (
+                                    <input
+                                        ref={ref}
+                                        className={
+                                            search === true
+                                                ? 'search-input fadeIn'
+                                                : search === false
+                                                ? 'search-input fadeOut'
+                                                : 'search-input'
+                                        }
+                                        type="text"
+                                        name=""
+                                        placeholder="Search..."
+                                    />
+                                )}
+                                <div
+                                    className={
+                                        search === true
+                                            ? 'icon-bg fadeOut'
+                                            : search === false
+                                            ? 'icon-bg fadeIn'
+                                            : 'icon-bg'
+                                    }
+                                >
+                                    {search !== true && (
+                                        <FontAwesomeIcon
+                                            onClick={toggle}
+                                            className={
+                                                search === true
+                                                    ? 'search-icon fadeOut'
+                                                    : search === false
+                                                    ? 'search-icon fadeIn'
+                                                    : 'search-icon'
+                                            }
+                                            icon={faSearch}
+                                        />
+                                    )}
                                 </div>
-                            </button>
-                        </div>
-                        {/* <Button
-                            className="sell"
+                            </Form>
+                        </Nav>
+
+                        <Button
+                            className="seller"
                             rounded
                             small
-                            to="/login"
+                            to={isSeller === false ? routes.dashboard : routes.registerSeller}
                             rightIcon={<FontAwesomeIcon icon={faShop} />}
                         >
-                            Đăng ký bán
+                            <p>Seller Centre</p>
                         </Button>
-                        <Button className="icon-sell">
-                            <FontAwesomeIcon icon={faShop} />
-                        </Button> */}
+
                         <Button>
                             <div className="icon-bell">
                                 <FontAwesomeIcon icon={faBell} />
@@ -71,11 +142,13 @@ function AppHeader() {
                             <CartSidebar />
                         </Button>
 
-                        {!currentUser ? (
+                        {!currentToken ? (
                             <div className="icon-user">
-                                <Button>
-                                    <FontAwesomeIcon icon={faCircleUser} />
-                                </Button>
+                                <img
+                                    src="https://images.pexels.com/photos/941693/pexels-photo-941693.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=500"
+                                    alt=""
+                                    className="avatar"
+                                />
                                 <div className="user-content">
                                     <Button className="button" to={'/login'}>
                                         LOGIN/REGISTER
@@ -84,13 +157,15 @@ function AppHeader() {
                             </div>
                         ) : (
                             <div className="icon-user">
-                                <Button>
-                                    <FontAwesomeIcon icon={faCircleUser} />
-                                </Button>
+                                <img
+                                    src="https://images.pexels.com/photos/941693/pexels-photo-941693.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=500"
+                                    alt=""
+                                    className="avatar"
+                                />
                                 <div className="user-content">
                                     <Button
                                         className="button"
-                                        to={`/account/profile/userid=${user.id}`}
+                                        to={`/account/${currentUser.id}/profile`}
                                     >
                                         MY ACCOUNT
                                     </Button>
@@ -106,166 +181,26 @@ function AppHeader() {
                         <Nav className="" navbarScroll>
                             <NavLink to={routes.home}>Home</NavLink>
                             <NavLink to={routes.shop}>Shop</NavLink>
-                            <NavLink to={routes.history}>Order History</NavLink>
+                            <NavLink to={`/account/${currentUser.id}/purchase`}>
+                                Order History
+                            </NavLink>
+                            <NavLink
+                                to={`/account/${currentUser.id}/profile`}
+                                className="profile-link-mb"
+                            >
+                                Profile
+                            </NavLink>
+                            <NavLink
+                                to={!isSeller === true ? routes.dashboard : routes.registerSeller}
+                                className="seller-link-mb"
+                            >
+                                Seller Centre
+                            </NavLink>
                         </Nav>
                     </Navbar.Collapse>
-                </Container>
+                </div>
             </Navbar>
         </Container>
-
-        // <Container className={cx('wrapper')}>
-        //     <Navbar className={cx('menu')}>
-        //         <Navbar.Brand to={routes.home}>
-        //             <img className={cx('image')} src={logo} alt="logo" preview={false} />
-        //         </Navbar.Brand>
-        //         <Nav>
-        //             <NavLink to={routes.home}>Home</NavLink>
-        //             <NavLink to={routes.shop}>Shop</NavLink>
-        //             <NavLink to={routes.history}>Purchase history</NavLink>
-        //         </Nav>
-        //     </Navbar>
-        //     <div className={cx('search')}>
-        //         <input placeholder="Search" spellCheck={false} />
-        //         <button className={cx('clear')}>
-        //             <FontAwesomeIcon icon={faCircleXmark} />
-        //         </button>
-        //         <button className={cx('search-btn')}>
-        //             <div className={cx('icon')}>
-        //                 <FontAwesomeIcon icon={faMagnifyingGlass} />
-        //             </div>
-        //         </button>
-        //     </div>
-        //     <div className={cx('action')}>
-        //         <Button
-        //             className={cx('sale')}
-        //             rounded
-        //             small
-        //             to="/login"
-        //             rightIcon={<FontAwesomeIcon icon={faShop} />}
-        //         >
-        //             Đăng ký bán
-        //         </Button>
-        //         <Button className={cx('icon-sale')}>
-        //             <FontAwesomeIcon icon={faShop} />
-        //         </Button>
-        //         <Button>
-        //             <div className={cx('icon-bell')}>
-        //                 <FontAwesomeIcon icon={faBell} />
-        //                 <div className={cx('item-number')}>100</div>
-        //             </div>
-        //         </Button>
-        //         <Button>
-        //             <div className={cx('icon-cart')}>
-        //                 <FontAwesomeIcon icon={faCartShopping} />
-        //                 <div className={cx('item-number')}>100</div>
-        //             </div>
-        //         </Button>
-
-        //         {!currentUser ? (
-        //             <div className={cx('icon-user')}>
-        //                 <Button>
-        //                     <FontAwesomeIcon icon={faCircleUser} />
-        //                 </Button>
-        //                 <div className={cx('user-content')}>
-        //                     <Button className={cx('button')} to={'/login'}>
-        //                         LOGIN/REGISTER
-        //                     </Button>
-        //                 </div>
-        //             </div>
-        //         ) : (
-        //             <div className={cx('icon-user')}>
-        //                 <Button>
-        //                     <FontAwesomeIcon icon={faCircleUser} />
-        //                 </Button>
-        //                 <div className={cx('user-content')}>
-        //                     <Button
-        //                         className={cx('button')}
-        //                         to={`/account/profile/userid=${user.id}`}
-        //                     >
-        //                         MY ACCOUNT
-        //                     </Button>
-        //                     <Button className={cx('button')} onClick={handleLogout}>
-        //                         LOGOUT
-        //                     </Button>
-        //                 </div>
-        //             </div>
-        //         )}
-        //     </div>
-        // </Container>
-
-        // <div className={cx('wrapper')}>
-        //     <Image className={cx('image')} src={logo} alt="logo" preview={false} />
-        //     <div className={cx('menu')}>
-        //         <Menu items={items} mode="horizontal" defaultSelectedKeys={['home']}></Menu>
-        //     </div>
-        //     <div className={cx('search')}>
-        //         <input placeholder="Search" spellCheck={false} />
-        //         <button className={cx('clear')}>
-        //             <FontAwesomeIcon icon={faCircleXmark} />
-        //         </button>
-        //         <button className={cx('search-btn')}>
-        //             <div className={cx('icon')}>
-        //                 <FontAwesomeIcon icon={faMagnifyingGlass} />
-        //             </div>
-        //         </button>
-        //     </div>
-        //     <div className={cx('action')}>
-        //         <Button
-        //             className={cx('sale')}
-        //             rounded
-        //             small
-        //             to="/login"
-        //             rightIcon={<FontAwesomeIcon icon={faShop} />}
-        //         >
-        //             Đăng ký bán
-        //         </Button>
-        //         <Button className={cx('icon-sale')}>
-        //             <FontAwesomeIcon icon={faShop} />
-        //         </Button>
-        //         <Button>
-        //             <div className={cx('icon-bell')}>
-        //                 <FontAwesomeIcon icon={faBell} />
-        //                 <div className={cx('item-number')}>100</div>
-        //             </div>
-        //         </Button>
-        //         <Button>
-        //             <div className={cx('icon-cart')}>
-        //                 <FontAwesomeIcon icon={faCartShopping} />
-        //                 <div className={cx('item-number')}>100</div>
-        //             </div>
-        //         </Button>
-
-        //         {!currentUser ? (
-        //             <div className={cx('icon-user')}>
-        //                 <Button>
-        //                     <FontAwesomeIcon icon={faCircleUser} />
-        //                 </Button>
-        //                 <div className={cx('user-content')}>
-        //                     <Button className={cx('button')} to={'/login'}>
-        //                         LOGIN/REGISTER
-        //                     </Button>
-        //                 </div>
-        //             </div>
-        //         ) : (
-        //             <div className={cx('icon-user')}>
-        //                 <Button>
-        //                     <FontAwesomeIcon icon={faCircleUser} />
-        //                 </Button>
-        //                 <div className={cx('user-content')}>
-        //                     <Button
-        //                         className={cx('button')}
-        //                         to={`/account/profile/userid=${user.id}`}
-        //                     >
-        //                         MY ACCOUNT
-        //                     </Button>
-        //                     <Button className={cx('button')} onClick={handleLogout}>
-        //                         LOGOUT
-        //                     </Button>
-        //                 </div>
-        //             </div>
-        //         )}
-        //     </div>
-        // </div>
     );
 }
 

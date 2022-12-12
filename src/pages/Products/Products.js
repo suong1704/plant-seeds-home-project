@@ -13,8 +13,8 @@ import BASE_API_URL from '../../api/api';
 const cx = classNames.bind(styles);
 
 function Products() {
+    console.log('re-render');
     const [productById, setProductById] = useState([]);
-
     const [productsByCategory, setProductsByCategory] = useState([]);
     const location = useLocation();
 
@@ -22,9 +22,10 @@ function Products() {
         baseURL: BASE_API_URL,
     });
 
-    const pages = location.pathname.split('/').splice(1);
-    console.log('pages', pages);
-
+    const [pages, setPages] = useState(location.pathname.split('/').splice(1));
+    useEffect(() => {
+        setPages(location.pathname.split('/').splice(1));
+    }, [location]);
     useEffect(() => {
         if (pages.length === 3) {
             const fetchProdutList = () => {
@@ -37,7 +38,7 @@ function Products() {
             fetchProdutList();
         } else if (pages.length === 1) {
             const fetchProdutList = () => {
-                API.get('/v1/product/getAllProduct')
+                API.get('v1/product/getAllProduct')
                     .then((res) => {
                         setProductsByCategory(res.data);
                     })
@@ -55,19 +56,52 @@ function Products() {
             };
             fetchProdutList();
         }
-        console.log(pages[pages.length - 1]);
-    }, [API, pages]);
+    }, []);
+
+    // useEffect(() => {
+    // if (pages.length === 3) {
+    //     const fetchProdutList = () => {
+    //         API.get(`v1/product/getProduct?id=${pages[pages.length - 1]}`)
+    //             .then((res) => {
+    //                 setProductById(res.data);
+    //             })
+    //             .catch((err) => console.log(err));
+    //     };
+    //     fetchProdutList();
+    // }
+    //    else if (pages.length === 1) {
+    //         const fetchProdutList = () => {
+    //             API.get('v1/product/getAllProduct')
+    //                 .then((res) => {
+    //                     setProductsByCategory(res.data);
+    //                 })
+    //                 .catch((err) => console.log(err));
+    //         };
+    //         fetchProdutList();
+    //     } else {
+    //         const fetchProdutList = () => {
+    //             API.get(v1/product/getProductWithType?type=${pages[pages.length - 1]})
+    //                 .then((res) => {
+    //                     console.log('res:', res.data);
+    //                     setProductsByCategory(res.data);
+    //                 })
+    //                 .catch((err) => console.log(err));
+    //         };
+    //         fetchProdutList();
+    //     }
+    // }, [pages]);
+    // else console.log(productsByCategory);
 
     return (
         <Container className={cx('container')}>
             <Breadcrumbs />
             {pages.length === 3 ? (
-                <ProductDetail product={productById} />
+                <ProductDetail />
             ) : (
                 <Panigation
-                    title={pages.length === 1 ? 'All PLants' : pages[pages.length - 1]}
+                    title={pages?.length === 1 ? 'all' : pages[pages?.length - 1]}
                     data={productsByCategory}
-                    numberPerPage={12}
+                    numberPerPage={8}
                 ></Panigation>
             )}
         </Container>
